@@ -15,6 +15,9 @@ import TasksPage from './pages/TasksPage';
 import AttendancePage from './pages/AttendancePage';
 import UsersPage from './pages/UsersPage';
 import NotificationsPage from './pages/NotificationsPage';
+import BRMeetingsPage from './pages/BRMeetingsPage';
+import BRDetailPage from './pages/BRDetailPage';
+import BRLogMOMPage from './pages/BRLogMOMPage';
 
 export default function App() {
   const dark = useThemeStore((s) => s.dark);
@@ -41,6 +44,9 @@ export default function App() {
               <Route path="/attendance" element={<AttendancePage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/br" element={<BRMeetingsPage />} />
+              <Route path="/br/:id" element={<BRDetailPage />} />
+              <Route path="/br/:id/log-mom" element={<BRLogMOMPage />} />
             </Routes>
           </Layout>
         }

@@ -1,4 +1,4 @@
-"""JWT authentication and password hashing utilities."""
+"""JWT authentication and password hashing utilities – Google Sheets backed."""
 
 from datetime import datetime, timedelta
 from typing import Optional
@@ -7,13 +7,9 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.database.session import get_db
-from app.models.models import User, UserRole
-from app.schemas.schemas import TokenData
+from app.models.models import UserRole
 
 settings = get_settings()
 
@@ -36,10 +32,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db),
-) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -53,8 +46,8 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+    from app.services.user_service import UserService
+    user = await UserService.get_user_by_id(None, user_id)
     if user is None or not user.is_active:
         raise credentials_exception
     return user
@@ -62,8 +55,9 @@ async def get_current_user(
 
 def require_roles(*roles: UserRole):
     """Dependency factory that restricts access to specific roles."""
-    async def role_checker(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role not in roles:
+    async def role_checker(current_user: dict = Depends(get_current_user)) -> dict:
+        # compare as string to gracefully handle enums vs strings from sheet
+        if str(current_user.role) not in [r.value for r in roles]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions",

@@ -7,6 +7,7 @@ import api from '../api';
 
 export default function UploadMOMPage() {
   const [file, setFile] = useState<File | null>(null);
+  const [meetingType, setMeetingType] = useState<'Meeting' | 'Board Resolution'>('Meeting');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -27,11 +28,14 @@ export default function UploadMOMPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const { data } = await api.post('/upload/mom', formData, {
+
+      const endpoint = meetingType === 'Board Resolution' ? '/br/upload' : '/upload/mom';
+
+      const { data } = await api.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      toast.success('MOM processed successfully!');
-      navigate(`/meetings/${data.id}`);
+      toast.success(`${meetingType} processed successfully!`);
+      navigate(`${meetingType === 'Board Resolution' ? '/br' : '/meetings'}/${data.id}`);
     } catch (err: any) {
       toast.error(err.response?.data?.detail || 'Upload failed');
     } finally {
@@ -43,14 +47,31 @@ export default function UploadMOMPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <h2 className="text-xl font-bold text-slate-900 dark:text-white">Upload MOM Document</h2>
 
+      <div className="bg-white dark:bg-[#161b27] p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Meeting Category</label>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setMeetingType('Meeting')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${meetingType === 'Meeting' ? 'bg-brand-500 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200'}`}
+          >
+            Regular Meeting
+          </button>
+          <button
+            onClick={() => setMeetingType('Board Resolution')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${meetingType === 'Board Resolution' ? 'bg-amber-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200'}`}
+          >
+            Board Resolution
+          </button>
+        </div>
+      </div>
+
       {/* Drop Zone */}
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-200 ${
-          isDragActive
+        className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-200 ${isDragActive
             ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 scale-[1.01]'
             : 'border-slate-300 dark:border-slate-600 hover:border-brand-400 hover:bg-brand-50/50 dark:hover:bg-brand-900/10'
-        }`}
+          }`}
       >
         <input {...getInputProps()} />
         <ArrowUpTrayIcon className="w-12 h-12 mx-auto text-slate-400 mb-4" />

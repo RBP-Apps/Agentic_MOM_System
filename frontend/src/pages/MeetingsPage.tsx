@@ -17,7 +17,7 @@ import type { MeetingListItem } from '../types';
 
 export default function MeetingsPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'Completed' | 'Upcoming'>('Upcoming');
+  const [activeTab, setActiveTab] = useState<'Upcoming' | 'Completed' | 'Cancelled'>('Upcoming');
 
   const { data: meetings = [], isLoading } = useQuery<MeetingListItem[]>({
     queryKey: ['meetings'],
@@ -36,23 +36,22 @@ export default function MeetingsPage() {
     }
   };
 
-  const now = new Date();
+  const upcomingMeetings = meetings.filter(m => m.status === 'Scheduled' || m.status === 'Rescheduled');
+  const completedMeetings = meetings.filter(m => m.status === 'Completed');
+  const cancelledMeetings = meetings.filter(m => m.status === 'Cancelled');
 
-  const upcomingMeetings = meetings.filter(m => {
-    if (!m.date) return false;
-    const meetingDateStr = m.time ? `${m.date}T${m.time}` : `${m.date}T00:00:00`;
-    const meetingDate = new Date(meetingDateStr);
-    return meetingDate >= now;
-  });
+  const displayedMeetings =
+    activeTab === 'Completed' ? completedMeetings :
+      activeTab === 'Cancelled' ? cancelledMeetings : upcomingMeetings;
 
-  const completedMeetings = meetings.filter(m => {
-    if (!m.date) return true;
-    const meetingDateStr = m.time ? `${m.date}T${m.time}` : `${m.date}T00:00:00`;
-    const meetingDate = new Date(meetingDateStr);
-    return meetingDate < now;
-  });
-
-  const displayedMeetings = activeTab === 'Completed' ? completedMeetings : upcomingMeetings;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Completed': return 'text-green-600 bg-green-50 dark:bg-green-500/10 dark:text-green-400 border-green-100 dark:border-green-500/20';
+      case 'Rescheduled': return 'text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400 border-amber-100 dark:border-amber-500/20';
+      case 'Cancelled': return 'text-red-600 bg-red-50 dark:bg-red-500/10 dark:text-red-400 border-red-100 dark:border-red-500/20';
+      default: return 'text-brand-600 bg-brand-50 dark:bg-brand-500/10 dark:text-brand-400 border-brand-100 dark:border-brand-500/20';
+    }
+  };
 
   return (
     <div className="space-y-5 max-w-[1200px] mx-auto">
@@ -108,6 +107,15 @@ export default function MeetingsPage() {
         >
           Completed ({completedMeetings.length})
         </button>
+        <button
+          onClick={() => setActiveTab('Cancelled')}
+          className={`px-5 py-2 text-[13px] font-bold rounded-lg transition-colors ${activeTab === 'Cancelled'
+            ? 'bg-white dark:bg-[#161b27] text-brand-600 dark:text-brand-400 shadow-sm'
+            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+            }`}
+        >
+          Cancelled ({cancelledMeetings.length})
+        </button>
       </div>
 
       {/* ── Content ── */}
@@ -132,19 +140,31 @@ export default function MeetingsPage() {
 
                 {/* Left – Info */}
                 <div className="flex items-start gap-4 min-w-0">
-                  {/* Colour avatar */}
-                  <div className="w-11 h-11 rounded-xl bg-brand-100 dark:bg-brand-500/15 flex items-center justify-center shrink-0">
-                    <CalendarDaysIcon className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+                  {/* Status Indicator Bar */}
+                  <div className={`w-1 self-stretch rounded-full ${m.status === 'Completed' ? 'bg-green-500' :
+                      m.status === 'Cancelled' ? 'bg-red-500' :
+                        m.status === 'Rescheduled' ? 'bg-amber-500' :
+                          'bg-brand-500'
+                    }`} />
+
+                  {/* Icon */}
+                  <div className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center shrink-0">
+                    <CalendarDaysIcon className="w-5 h-5 text-slate-400" />
                   </div>
 
                   {/* Text */}
                   <div className="min-w-0">
-                    <Link
-                      to={`/meetings/${m.id}`}
-                      className="text-[15px] font-bold text-slate-900 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 transition-colors line-clamp-1"
-                    >
-                      {m.title}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/meetings/${m.id}`}
+                        className="text-[15px] font-bold text-slate-900 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 transition-colors line-clamp-1"
+                      >
+                        {m.title}
+                      </Link>
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${getStatusColor(m.status)}`}>
+                        {m.status}
+                      </span>
+                    </div>
 
                     {/* Meta row */}
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">

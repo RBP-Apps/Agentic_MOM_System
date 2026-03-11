@@ -103,9 +103,12 @@ export default function CreateMOMPage() {
             }
             : null,
       };
-      const { data } = await api.post('/meetings/', payload);
-      toast.success('Meeting created successfully!');
-      navigate(`/meetings/${data.id}`);
+      const isBR = form.meeting_type?.toLowerCase().includes('board resolution') || form.meeting_type?.toLowerCase() === 'br';
+      const endpoint = isBR ? '/br/' : '/meetings/';
+
+      const { data } = await api.post(endpoint, payload);
+      toast.success(`${isBR ? 'Resolution' : 'Meeting'} created successfully!`);
+      navigate(`${isBR ? '/br' : '/meetings'}/${data.id}`);
     } catch (err: any) {
       // Handle backend error response: can be string or array of error objects
       const detail = err.response?.data?.detail;
@@ -145,7 +148,12 @@ export default function CreateMOMPage() {
             </div>
             <div>
               <label className={labelClass}>Meeting Type</label>
-              <input value={form.meeting_type} onChange={(e) => updateField('meeting_type', e.target.value)} placeholder="e.g., Board Meeting" className={inputClass} />
+              <select value={form.meeting_type} onChange={(e) => updateField('meeting_type', e.target.value)} className={inputClass}>
+                <option value="">Regular Meeting</option>
+                <option value="Board Resolution">Board Resolution</option>
+                <option value="Committee Meeting">Committee Meeting</option>
+                <option value="Annual General Meeting">Annual General Meeting</option>
+              </select>
             </div>
             <div>
               <label className={labelClass}>Meeting Mode</label>

@@ -1,9 +1,7 @@
-"""Dashboard analytics endpoint."""
+"""Dashboard analytics endpoint – Google Sheets backed."""
 
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter
 
-from app.database.session import get_db
 from app.schemas.schemas import AnalyticsResponse
 from app.services.dashboard_service import DashboardService
 
@@ -11,7 +9,5 @@ router = APIRouter()
 
 
 @router.get("/", response_model=AnalyticsResponse)
-async def get_dashboard(
-    db: AsyncSession = Depends(get_db),
-):
-    return await DashboardService.get_dashboard(db)
+async def get_dashboard():
+    return await DashboardService.get_dashboard(None)

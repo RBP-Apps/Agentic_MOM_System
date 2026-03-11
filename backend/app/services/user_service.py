@@ -1,66 +1,85 @@
-"""User service – CRUD operations for users."""
+"""User service – CRUD operations via Google Sheets."""
 
-from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime
+import logging
 
-from app.models.models import User
-from app.schemas.schemas import UserCreate, UserUpdate
+from app.services.google_sheets_service import SheetsDB, _to_int
+from app.services.meeting_service import DotDict
 from app.core.security import hash_password
+
+logger = logging.getLogger(__name__)
 
 
 class UserService:
 
     @staticmethod
-    async def create_user(db: AsyncSession, data: UserCreate) -> User:
-        user = User(
-            name=data.name,
-            email=data.email,
-            hashed_password=hash_password(data.password),
-            role=data.role,
-            phone=data.phone,
-        )
-        db.add(user)
-        await db.flush()
-        await db.refresh(user)
-        return user
+    async def create_user(db, data) -> DotDict:
+        now = datetime.utcnow().isoformat()
+        row = SheetsDB.append_row("Users", {
+            "name": data.name,
+            "email": data.email,
+            "hashed_password": hash_password(data.password),
+            "role": data.role.value if hasattr(data.role, 'value') else str(data.role),
+            "phone": data.phone,
+            "is_active": "True",
+            "created_at": now,
+        })
+        return _row_to_user(row)
 
     @staticmethod
-    async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
-        result = await db.execute(select(User).where(User.id == user_id))
-        return result.scalar_one_or_none()
+    async def get_user_by_id(db, user_id: int) -> DotDict | None:
+        u = SheetsDB.get_by_id("Users", user_id)
+        if not u:
+            return None
+        return _row_to_user(u)
 
     @staticmethod
-    async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
-        result = await db.execute(select(User).where(User.email == email))
-        return result.scalar_one_or_none()
+    async def get_user_by_email(db, email: str) -> DotDict | None:
+        users = SheetsDB.get_by_field("Users", "email", email)
+        if not users:
+            return None
+        return _row_to_user(users[0])
 
     @staticmethod
-    async def list_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[User]:
-        result = await db.execute(select(User).offset(skip).limit(limit))
-        return list(result.scalars().all())
+    async def list_users(db, skip: int = 0, limit: int = 100):
+        all_users = SheetsDB.get_all("Users")
+        sliced = all_users[skip:skip + limit]
+        return [_row_to_user(u) for u in sliced]
 
     @staticmethod
-    async def update_user(db: AsyncSession, user_id: int, data: UserUpdate) -> User | None:
-        user = await UserService.get_user_by_id(db, user_id)
+    async def update_user(db, user_id: int, data) -> DotDict | None:
+        user = SheetsDB.get_by_id("Users", user_id)
         if not user:
             return None
-        update_data = data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(user, field, value)
-        await db.flush()
-        await db.refresh(user)
-        return user
+        update_data = data.model_dump(exclude_unset=True) if hasattr(data, 'model_dump') else data.dict(exclude_unset=True)
+        if "role" in update_data and hasattr(update_data["role"], "value"):
+            update_data["role"] = update_data["role"].value
+        SheetsDB.update_row("Users", user_id, update_data)
+        updated = SheetsDB.get_by_id("Users", user_id)
+        return _row_to_user(updated) if updated else None
 
     @staticmethod
-    async def delete_user(db: AsyncSession, user_id: int) -> bool:
-        user = await UserService.get_user_by_id(db, user_id)
+    async def delete_user(db, user_id: int) -> bool:
+        user = SheetsDB.get_by_id("Users", user_id)
         if not user:
             return False
-        await db.delete(user)
-        await db.flush()
+        SheetsDB.delete_row("Users", user_id)
         return True
 
     @staticmethod
-    async def count_users(db: AsyncSession) -> int:
-        result = await db.execute(select(func.count(User.id)))
-        return result.scalar() or 0
+    async def count_users(db) -> int:
+        return SheetsDB.count("Users")
+
+
+def _row_to_user(u: dict) -> DotDict:
+    from app.services.google_sheets_service import _to_bool
+    return DotDict({
+        "id": _to_int(str(u.get("id", ""))) or 0,
+        "name": u.get("name", ""),
+        "email": u.get("email", ""),
+        "hashed_password": u.get("hashed_password", ""),
+        "role": u.get("role", "Employee"),
+        "phone": u.get("phone") or None,
+        "is_active": _to_bool(str(u.get("is_active", "True"))),
+        "created_at": datetime.fromisoformat(u["created_at"]) if u.get("created_at") else datetime.utcnow(),
+    })

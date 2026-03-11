@@ -12,8 +12,15 @@ from app.config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-def get_base_template(title: str, content: str) -> str:
-    """Returns a professional Botivate-branded HTML template."""
+def get_base_template(title: str, content: str, is_br: bool = False) -> str:
+    """Returns professional branding – either Standard or Board Resolution style."""
+    # Branding config
+    accent_primary = "#4f46e5" if not is_br else "#1e293b" # Royal Blue vs Deep Corporate Charcoal
+    accent_secondary = "#60a5fa" if not is_br else "#64748b" 
+    brand_name = "Botivate" if not is_br else "Botivate Board Governance"
+    tagline = "Powering Businesses On Autopilot" if not is_br else "Official Board Resolution Management"
+    system_name = "Botivate MOM Management System" if not is_br else "Botivate Corporate Governance Portal"
+    
     return f"""
     <!DOCTYPE html>
     <html>
@@ -21,7 +28,7 @@ def get_base_template(title: str, content: str) -> str:
         <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
             <!-- Header Ribbon -->
             <tr>
-                <td style="height: 6px; background: linear-gradient(90deg, #60a5fa 0%, #4f46e5 100%); line-height: 6px; font-size: 6px;">&nbsp;</td>
+                <td style="height: 6px; background: linear-gradient(90deg, {accent_secondary} 0%, {accent_primary} 100%); line-height: 6px; font-size: 6px;">&nbsp;</td>
             </tr>
             <!-- Header Content -->
             <tr>
@@ -29,8 +36,8 @@ def get_base_template(title: str, content: str) -> str:
                     <table border="0" cellpadding="0" cellspacing="0" width="100%">
                         <tr>
                             <td>
-                                <h1 style="margin: 0; font-size: 24px; color: #1e293b; letter-spacing: -0.5px;">Botivate</h1>
-                                <p style="margin: 4px 0 0; font-size: 13px; color: #64748b; font-style: italic;">Powering Businesses On Autopilot</p>
+                                <h1 style="margin: 0; font-size: 24px; color: #1e293b; letter-spacing: -0.5px;">{brand_name}</h1>
+                                <p style="margin: 4px 0 0; font-size: 13px; color: #64748b; font-style: italic;">{tagline}</p>
                             </td>
                             <td align="right" style="text-align: right;">
                                 <h2 style="margin: 0; font-size: 12px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Botivate Services LLP</h2>
@@ -42,7 +49,7 @@ def get_base_template(title: str, content: str) -> str:
             <!-- Main Content Area -->
             <tr>
                 <td style="padding: 40px;">
-                    <h2 style="margin: 0 0 24px; color: #3b82f6; font-size: 20px; font-weight: 600;">{title}</h2>
+                    <h2 style="margin: 0 0 24px; color: {accent_primary}; font-size: 20px; font-weight: 600;">{title}</h2>
                     {content}
                 </td>
             </tr>
@@ -50,14 +57,14 @@ def get_base_template(title: str, content: str) -> str:
             <tr>
                 <td style="padding: 30px 40px; background-color: #f8fafc; border-top: 1px solid #e2e8f0;">
                     <p style="margin: 0; color: #64748b; font-size: 13px; text-align: center;">
-                        This is an automated notification from the <strong>Botivate MOM Management System</strong>.<br>
+                        This is an automated notification from the <strong>{system_name}</strong>.<br>
                         Please do not reply directly to this email.
                     </p>
                 </td>
             </tr>
             <!-- Bottom Ribbon -->
             <tr>
-                <td style="height: 6px; background: linear-gradient(90deg, #4f46e5 0%, #60a5fa 100%); line-height: 6px; font-size: 6px;">&nbsp;</td>
+                <td style="height: 6px; background: linear-gradient(90deg, {accent_primary} 0%, {accent_secondary} 100%); line-height: 6px; font-size: 6px;">&nbsp;</td>
             </tr>
         </table>
     </body>
@@ -103,19 +110,24 @@ class EmailService:
             return False
 
     @staticmethod
-    async def send_task_assignment(to_email: str, task_title: str, meeting_title: str, deadline: str | None):
-        subject = f"New Task Assigned: {task_title}"
+    async def send_task_assignment(to_email: str, task_title: str, meeting_title: str, deadline: str | None, is_br: bool = False):
+        subject = f"New Action Item: {task_title}" if is_br else f"New Task Assigned: {task_title}"
+        greeting = "Dear Board Member," if is_br else "Dear Team Member,"
+        intro = f"You have been assigned a new mandatory action item from the Board Resolution discussion <strong>{meeting_title}</strong>." if is_br else f"You have been assigned a new task from the meeting <strong>{meeting_title}</strong>."
+        label = "Action Item" if is_br else "Task"
+        container_bg = "#fffbeb" if is_br else "#f1f5f9"
+        
         content = f"""
-            <p style="font-size: 16px; color: #475569; margin: 0 0 16px;">Dear Team Member,</p>
-            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0 0 24px;">You have been assigned a new task from the meeting <strong>{meeting_title}</strong>.</p>
+            <p style="font-size: 16px; color: #475569; margin: 0 0 16px;">{greeting}</p>
+            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0 0 24px;">{intro}</p>
             
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; background-color: #f1f5f9; border-radius: 6px; overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; background-color: {container_bg}; border-radius: 6px; overflow: hidden;">
                 <tr>
-                    <td style="padding: 12px 16px; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; width: 100px;">Task</td>
+                    <td style="padding: 12px 16px; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; width: 120px;">{label}</td>
                     <td style="padding: 12px 16px; color: #0f172a; border-bottom: 1px solid #e2e8f0;">{task_title}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 12px 16px; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0;">Meeting</td>
+                    <td style="padding: 12px 16px; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0;">Source</td>
                     <td style="padding: 12px 16px; color: #0f172a; border-bottom: 1px solid #e2e8f0;">{meeting_title}</td>
                 </tr>
                 <tr>
@@ -124,9 +136,9 @@ class EmailService:
                 </tr>
             </table>
             
-            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0;">Please contact the HR Department for any updates or clarifications regarding this task.</p>
+            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0;">Please ensure the above resolution item is tracked for compliance. Contact Corporate Governance for details.</p>
         """
-        html = get_base_template("New Task Assignment", content)
+        html = get_base_template("Task Assignment", content, is_br=is_br)
         await EmailService.send_email(to_email, subject, html)
 
     @staticmethod
@@ -175,20 +187,24 @@ class EmailService:
         await EmailService.send_email(to_email, subject, html)
 
     @staticmethod
-    async def send_meeting_invitation(to_email: str, recipient_name: str, meeting_title: str, date: str, time: str, venue: str):
-        subject = f"Meeting Invitation: {meeting_title}"
+    async def send_meeting_invitation(to_email: str, recipient_name: str, meeting_title: str, date: str, time: str, venue: str, is_br: bool = False):
+        subject = f"Official Board Resolution Invitation: {meeting_title}" if is_br else f"Meeting Invitation: {meeting_title}"
+        intro = "You are hereby formally invited to review and deliberate upon an upcoming Board Resolution." if is_br else "You have been officially invited to the upcoming scheduled meeting."
+        meeting_label = "RESOLUTION TITLE" if is_br else "MEETING TITLE"
+        
         content = f"""
             <p style="font-size: 16px; color: #475569; margin: 0 0 16px;">Dear {recipient_name},</p>
-            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0 0 24px;">You have been officially invited to the upcoming scheduled meeting.</p>
+            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0 0 24px;">{intro}</p>
             
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
                 <tr>
                     <td colspan="2" style="background-color: #f8fafc; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #0f172a; font-size: 16px;">
+                        <span style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">{meeting_label}</span>
                         {meeting_title}
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding: 12px 16px; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; width: 120px;">Date</td>
+                    <td style="padding: 12px 16px; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; width: 120px;">Scheduled Date</td>
                     <td style="padding: 12px 16px; color: #0f172a; border-bottom: 1px solid #e2e8f0;"><strong>{date}</strong></td>
                 </tr>
                 <tr>
@@ -196,29 +212,76 @@ class EmailService:
                     <td style="padding: 12px 16px; color: #0f172a; border-bottom: 1px solid #e2e8f0;"><strong>{time}</strong></td>
                 </tr>
                 <tr>
-                    <td style="padding: 12px 16px; font-weight: 600; color: #475569;">Venue / Link</td>
+                    <td style="padding: 12px 16px; font-weight: 600; color: #475569;">Venue / Portal</td>
                     <td style="padding: 12px 16px; color: #0f172a;">{venue}</td>
                 </tr>
             </table>
             
-            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0;">Please mark your calendar appropriately. We look forward to your valuable presence and contribution.</p>
+            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0;">Your presence and counsel are requested. Please acknowledge your attendance in the board portal.</p>
         """
-        html = get_base_template("Meeting Invitation", content)
+        html = get_base_template("Official Invitation", content, is_br=is_br)
         await EmailService.send_email(to_email, subject, html)
 
     @staticmethod
-    async def send_meeting_summary(to_email: str, recipient_name: str, meeting_title: str, is_absent: bool, summary: str, task_html: str, pdf_data: bytes = None, pdf_name: str = None, remarks: str = None):
-        subject = f"MOM & Summary: {meeting_title}"
+    async def send_meeting_rescheduled(to_email: str, recipient_name: str, meeting_title: str, old_date: str, old_time: str, new_date: str, new_time: str, is_br: bool = False):
+        subject = f"BOARD RESOLUTION RESCHEDULED: {meeting_title}" if is_br else f"RESCHEDULED: {meeting_title}"
+        intro_text = f"The Board Resolution session <strong>{meeting_title}</strong> has been rescheduled due to administrative requirements." if is_br else f"The meeting <strong>{meeting_title}</strong> has been rescheduled."
+        
+        content = f"""
+            <p style="font-size: 16px; color: #475569; margin: 0 0 16px;">Dear {recipient_name},</p>
+            <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 4px; margin-bottom: 24px;">
+                <p style="font-size: 15px; color: #92400e; margin: 0;"><strong>Important:</strong> {intro_text}</p>
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
+                <tr>
+                    <td style="padding: 12px 16px; font-weight: 600; color: #64748b; border-bottom: 1px solid #e2e8f0; width: 120px; background-color: #f8fafc;">Previous Time</td>
+                    <td style="padding: 12px 16px; color: #94a3b8; border-bottom: 1px solid #e2e8f0; text-decoration: line-through;">{old_date} at {old_time}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px 16px; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; background-color: #fffbeb;">NEW DATE</td>
+                    <td style="padding: 12px 16px; color: #0f172a; border-bottom: 1px solid #e2e8f0; font-weight: 700;">{new_date}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px 16px; font-weight: 600; color: #475569; background-color: #fffbeb;">NEW TIME</td>
+                    <td style="padding: 12px 16px; color: #0f172a; font-weight: 700;">{new_time}</td>
+                </tr>
+            </table>
+            
+            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0;">Please update your official calendar. We apologize for any inconvenience.</p>
+        """
+        html = get_base_template("Schedule Amendment", content, is_br=is_br)
+        await EmailService.send_email(to_email, subject, html)
+
+    @staticmethod
+    async def send_meeting_cancellation(to_email: str, recipient_name: str, meeting_title: str, is_br: bool = False):
+        subject = f"BOARD RESOLUTION CANCELLED: {meeting_title}" if is_br else f"CANCELLED: {meeting_title}"
+        intro_text = f"The Board Resolution session for <strong>{meeting_title}</strong> has been officially cancelled and the resolution will not be moved at this time." if is_br else f"Please be advised that the meeting <strong>{meeting_title}</strong> has been <strong>CANCELLED</strong>."
+        
+        content = f"""
+            <p style="font-size: 16px; color: #475569; margin: 0 0 16px;">Dear {recipient_name},</p>
+            <div style="background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 16px; border-radius: 4px; margin-bottom: 24px;">
+                <p style="font-size: 15px; color: #991b1b; margin: 0;">{intro_text}</p>
+            </div>
+            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0 0 24px;">The scheduled session will no longer take place. If the resolution is to be proposed again, a fresh notice will be issued.</p>
+            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0;">You may remove this item from your corporate records.</p>
+        """
+        html = get_base_template("Cancellation Notice", content, is_br=is_br)
+        await EmailService.send_email(to_email, subject, html)
+
+    @staticmethod
+    async def send_meeting_summary(to_email: str, recipient_name: str, meeting_title: str, is_absent: bool, summary: str, task_html: str, pdf_data: bytes = None, pdf_name: str = None, remarks: str = None, is_br: bool = False):
+        subject = f"Official Resolution Wording & MOM: {meeting_title}" if is_br else f"MOM & Summary: {meeting_title}"
         
         if is_absent:
             greeting_box = f"""
             <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin-bottom: 24px;">
-                <p style="font-size: 14px; color: #991b1b; margin: 0;"><strong>Note:</strong> You were marked absent in this meeting. Please review the proceedings below to stay updated.</p>
+                <p style="font-size: 14px; color: #991b1b; margin: 0;"><strong>Note:</strong> You were unable to attend this session. Please review the formal resolutions and mandates below.</p>
             </div>
             """
         else:
             greeting_box = f"""
-            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0 0 24px;">Please find the Minutes of Meeting (MOM) and summary for our recent discussion.</p>
+            <p style="font-size: 15px; color: #334155; line-height: 1.6; margin: 0 0 24px;">Please find the formal Minutes of Meeting (MOM) and passed resolutions for your records.</p>
             """
             
         styled_task_html = task_html.replace(
@@ -233,33 +296,36 @@ class EmailService:
         if pdf_data:
             attachment_notice = """
             <div style="margin-top: 24px; padding: 16px; background-color: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px;">
-                <p style="font-size: 14px; color: #166534; margin: 0;"><strong>Attached:</strong> You will find the complete, officially formatted MOM PDF attached to this email. You can download it directly.</p>
+                <p style="font-size: 14px; color: #166534; margin: 0;"><strong>Attached:</strong> The officially signed/formatted PDF document is attached for Board repository purposes.</p>
             </div>
             """
 
         remarks_html = ""
         if remarks:
+            remarks_style = "background-color: #fffbeb; border: 1px solid #fde68a; color: #92400e;" if is_br else "background-color: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1;"
+            remarks_title = "Confidential Board Member Note" if is_br else "Personal Remarks for you"
             remarks_html = f"""
-            <h3 style="color: #1e293b; font-size: 16px; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid #e0f2fe;">Personal Remarks specifically for you</h3>
-            <div style="background-color: #f0f9ff; padding: 16px; border-radius: 6px; margin-bottom: 24px; border: 1px solid #bae6fd;">
-                <p style="margin: 0; font-size: 14px; color: #0369a1; line-height: 1.6; white-space: pre-wrap;"><strong>HR/Admin Note:</strong> {remarks}</p>
+            <h3 style="color: #1e293b; font-size: 16px; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">{remarks_title}</h3>
+            <div style="{remarks_style} padding: 16px; border-radius: 6px; margin-bottom: 24px;">
+                <p style="margin: 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap;"><strong>Admin/HR Note:</strong> {remarks}</p>
             </div>
             """
 
+        discussion_label = "Resolution Summary / Wording" if is_br else "Discussion Summary"
         content = f"""
             <p style="font-size: 16px; color: #475569; margin: 0 0 16px;">Dear {recipient_name},</p>
             {greeting_box}
             
             {remarks_html}
             
-            <h3 style="color: #1e293b; font-size: 16px; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">Discussion Summary</h3>
+            <h3 style="color: #1e293b; font-size: 16px; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">{discussion_label}</h3>
             <div style="background-color: #f8fafc; padding: 16px; border-radius: 6px; margin-bottom: 24px; border: 1px solid #e2e8f0;">
-                <p style="margin: 0; font-size: 14px; color: #334155; line-height: 1.6; white-space: pre-wrap;">{summary or 'No formal summary was documented.'}</p>
+                <p style="margin: 0; font-size: 14px; color: #334155; line-height: 1.6; white-space: pre-wrap;">{summary or 'No formal wording documented.'}</p>
             </div>
             
-            <h3 style="color: #1e293b; font-size: 16px; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">Action Items</h3>
+            <h3 style="color: #1e293b; font-size: 16px; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">Action Mandates</h3>
             {styled_task_html}
             {attachment_notice}
         """
-        html = get_base_template(f"MOM: {meeting_title}", content)
+        html = get_base_template(f"MOM Archive: {meeting_title}" if is_br else f"MOM: {meeting_title}", content, is_br=is_br)
         await EmailService.send_email(to_email, subject, html, attachment_data=pdf_data, attachment_name=pdf_name)

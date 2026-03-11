@@ -6,11 +6,13 @@ import {
   BellIcon,
   SunIcon,
   MoonIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: HomeIcon },
   { path: '/meetings', label: 'Meetings', icon: CalendarDaysIcon },
+  { path: '/br', label: 'Board Resolutions', icon: ShieldCheckIcon },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -44,13 +46,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 key={path}
                 to={path}
                 className={`group flex items-center gap-3 px-3.5 py-3 rounded-xl text-[14px] font-semibold transition-all duration-200 ${active
-                    ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm shadow-brand-100/50 dark:shadow-none'
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white'
+                  ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm shadow-brand-100/50 dark:shadow-none'
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white'
                   }`}
               >
                 <div className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all duration-200 ${active
-                    ? 'bg-brand-500 text-white shadow-md shadow-brand-200 dark:shadow-brand-900/50 scale-110'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 group-hover:text-slate-600 dark:group-hover:text-slate-300'
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-200 dark:shadow-brand-900/50 scale-110'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 group-hover:text-slate-600 dark:group-hover:text-slate-300'
                   }`}>
                   <Icon className="w-4 h-4" />
                 </div>

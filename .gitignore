@@ -2,6 +2,13 @@
 __pycache__/
 *.py[codz]
 *$py.class
+api_keys.json
+*.json
+!package.json
+!tsconfig.json
+google_credentials.json
+.env
+uploads/
 
 # C extensions
 *.so

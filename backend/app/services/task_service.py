@@ -1,125 +1,176 @@
-"""Task service – CRUD and status tracking for tasks."""
+"""Task service – CRUD and status tracking via Google Sheets."""
 
 from datetime import date, datetime
+import logging
 
-from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from app.services.google_sheets_service import SheetsDB, _to_int
+from app.services.meeting_service import _parse_date, _row_to_task, DotDict
 
-from app.models.models import Task, TaskHistory, TaskStatus, Meeting
-from app.schemas.schemas import TaskCreate, TaskUpdate
+logger = logging.getLogger(__name__)
 
 
 class TaskService:
 
     @staticmethod
-    async def create_task(db: AsyncSession, meeting_id: int, data: TaskCreate) -> Task:
-        task = Task(
-            meeting_id=meeting_id,
-            title=data.title,
-            description=data.description,
-            responsible_person=data.responsible_person,
-            responsible_email=data.responsible_email,
-            deadline=data.deadline,
-            status=data.status,
-        )
-        db.add(task)
-        await db.flush()
+    async def create_task(db, meeting_id: int, data) -> DotDict:
+        now = datetime.utcnow().isoformat()
+        row = SheetsDB.append_row("Tasks", {
+            "meeting_id": meeting_id,
+            "title": data.title,
+            "description": data.description,
+            "responsible_person": data.responsible_person,
+            "responsible_email": data.responsible_email,
+            "deadline": data.deadline,
+            "status": data.status if hasattr(data, 'status') else "Pending",
+            "created_at": now,
+        })
+        task_id = _to_int(str(row.get("id", "")))
 
         # Initial history entry
-        db.add(TaskHistory(
-            task_id=task.id,
-            previous_status=None,
-            new_status=task.status,
-            changed_by="system",
-        ))
-        await db.flush()
-        await db.refresh(task)
+        SheetsDB.append_row("TaskHistory", {
+            "task_id": task_id,
+            "previous_status": "",
+            "new_status": data.status if hasattr(data, 'status') else "Pending",
+            "changed_at": now,
+            "changed_by": "system",
+        })
+
+        return _row_to_task(row)
+
+    @staticmethod
+    async def get_task(db, task_id: int) -> DotDict | None:
+        t = SheetsDB.get_by_id("Tasks", task_id)
+        if not t:
+            return None
+        task = _row_to_task(t)
+        # Load history
+        history = SheetsDB.get_by_field("TaskHistory", "task_id", task_id)
+        task.history = [DotDict({
+            "id": _to_int(str(h.get("id", ""))) or 0,
+            "task_id": task_id,
+            "previous_status": h.get("previous_status") or None,
+            "new_status": h.get("new_status", ""),
+            "changed_at": datetime.fromisoformat(h["changed_at"]) if h.get("changed_at") else datetime.utcnow(),
+            "changed_by": h.get("changed_by") or None,
+        }) for h in history]
+        # Load meeting reference
+        if task.meeting_id:
+            m = SheetsDB.get_by_id("Meetings", task.meeting_id)
+            if m:
+                task.meeting = DotDict({"id": task.meeting_id, "title": m.get("title", "")})
         return task
 
     @staticmethod
-    async def get_task(db: AsyncSession, task_id: int) -> Task | None:
-        result = await db.execute(
-            select(Task).options(selectinload(Task.history)).where(Task.id == task_id)
-        )
-        return result.scalar_one_or_none()
+    async def list_tasks(db, meeting_id: int | None = None, status=None, skip: int = 0, limit: int = 100):
+        all_tasks = SheetsDB.get_all("Tasks")
 
-    @staticmethod
-    async def list_tasks(
-        db: AsyncSession,
-        meeting_id: int | None = None,
-        status: TaskStatus | None = None,
-        skip: int = 0,
-        limit: int = 100,
-    ) -> list[Task]:
-        query = select(Task).options(selectinload(Task.meeting))
         if meeting_id:
-            query = query.where(Task.meeting_id == meeting_id)
+            all_tasks = [t for t in all_tasks if _to_int(str(t.get("meeting_id", ""))) == meeting_id]
         if status:
-            query = query.where(Task.status == status)
-        query = query.order_by(Task.created_at.desc()).offset(skip).limit(limit)
-        result = await db.execute(query)
-        return list(result.scalars().all())
+            status_val = status.value if hasattr(status, 'value') else str(status)
+            all_tasks = [t for t in all_tasks if t.get("status", "") == status_val]
+
+        # Sort by created_at desc
+        all_tasks.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        sliced = all_tasks[skip:skip + limit]
+
+        results = []
+        for t in sliced:
+            task = _row_to_task(t)
+            # Add meeting reference
+            mid = _to_int(str(t.get("meeting_id", "")))
+            if mid:
+                m = SheetsDB.get_by_id("Meetings", mid)
+                if m:
+                    task.meeting = DotDict({"id": mid, "title": m.get("title", "")})
+            results.append(task)
+        return results
 
     @staticmethod
-    async def update_task(
-        db: AsyncSession, task_id: int, data: TaskUpdate, changed_by: str = "system"
-    ) -> Task | None:
-        task = await TaskService.get_task(db, task_id)
+    async def update_task(db, task_id: int, data, changed_by: str = "system") -> DotDict | None:
+        task = SheetsDB.get_by_id("Tasks", task_id)
         if not task:
             return None
 
-        old_status = task.status
-        update_data = data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(task, field, value)
+        old_status = task.get("status", "")
+        update_data = data.model_dump(exclude_unset=True) if hasattr(data, 'model_dump') else data.dict(exclude_unset=True)
+
+        # Serialise date fields
+        if "deadline" in update_data and update_data["deadline"]:
+            update_data["deadline"] = str(update_data["deadline"])
+
+        SheetsDB.update_row("Tasks", task_id, update_data)
 
         # Log status change
-        if "status" in update_data and update_data["status"] != old_status:
-            db.add(TaskHistory(
-                task_id=task.id,
-                previous_status=old_status,
-                new_status=task.status,
-                changed_by=changed_by,
-            ))
+        if "status" in update_data and str(update_data["status"]) != str(old_status):
+            new_status_val = update_data["status"]
+            if hasattr(new_status_val, 'value'):
+                new_status_val = new_status_val.value
+            SheetsDB.append_row("TaskHistory", {
+                "task_id": task_id,
+                "previous_status": old_status,
+                "new_status": new_status_val,
+                "changed_at": datetime.utcnow().isoformat(),
+                "changed_by": changed_by,
+            })
 
-        await db.flush()
-        await db.refresh(task)
-        return task
+        updated = SheetsDB.get_by_id("Tasks", task_id)
+        return _row_to_task(updated) if updated else None
 
     @staticmethod
-    async def delete_task(db: AsyncSession, task_id: int) -> bool:
-        task = await TaskService.get_task(db, task_id)
+    async def delete_task(db, task_id: int) -> bool:
+        task = SheetsDB.get_by_id("Tasks", task_id)
         if not task:
             return False
-        await db.delete(task)
-        await db.flush()
+        SheetsDB.delete_by_field("TaskHistory", "task_id", task_id)
+        SheetsDB.delete_row("Tasks", task_id)
         return True
 
     @staticmethod
-    async def count_by_status(db: AsyncSession) -> dict[str, int]:
-        counts = {}
-        for s in TaskStatus:
-            result = await db.execute(select(func.count(Task.id)).where(Task.status == s))
-            counts[s.value] = result.scalar() or 0
+    async def count_by_status(db) -> dict[str, int]:
+        all_tasks = SheetsDB.get_all("Tasks")
+        counts = {"Pending": 0, "In Progress": 0, "Completed": 0}
+        for t in all_tasks:
+            s = t.get("status", "Pending")
+            if s in counts:
+                counts[s] += 1
+            else:
+                counts[s] = 1
         return counts
 
     @staticmethod
-    async def overdue_tasks(db: AsyncSession) -> list[Task]:
+    async def overdue_tasks(db):
         today = date.today()
-        result = await db.execute(
-            select(Task)
-            .options(selectinload(Task.meeting))
-            .where(Task.deadline < today, Task.status != TaskStatus.COMPLETED)
-            .order_by(Task.deadline.asc())
-        )
-        return list(result.scalars().all())
+        all_tasks = SheetsDB.get_all("Tasks")
+        overdue = []
+        for t in all_tasks:
+            deadline = _parse_date(t.get("deadline"))
+            status = t.get("status", "")
+            if deadline and deadline < today and status != "Completed":
+                task = _row_to_task(t)
+                mid = _to_int(str(t.get("meeting_id", "")))
+                if mid:
+                    m = SheetsDB.get_by_id("Meetings", mid)
+                    if m:
+                        task.meeting = DotDict({"id": mid, "title": m.get("title", "")})
+                    else:
+                        task.meeting = None
+                overdue.append(task)
+        overdue.sort(key=lambda x: x.deadline or date.max)
+        return overdue
 
     @staticmethod
-    async def get_task_history(db: AsyncSession, task_id: int) -> list[TaskHistory]:
-        result = await db.execute(
-            select(TaskHistory)
-            .where(TaskHistory.task_id == task_id)
-            .order_by(TaskHistory.changed_at.desc())
-        )
-        return list(result.scalars().all())
+    async def get_task_history(db, task_id: int):
+        history = SheetsDB.get_by_field("TaskHistory", "task_id", task_id)
+        results = []
+        for h in history:
+            results.append(DotDict({
+                "id": _to_int(str(h.get("id", ""))) or 0,
+                "task_id": task_id,
+                "previous_status": h.get("previous_status") or None,
+                "new_status": h.get("new_status", ""),
+                "changed_at": datetime.fromisoformat(h["changed_at"]) if h.get("changed_at") else datetime.utcnow(),
+                "changed_by": h.get("changed_by") or None,
+            }))
+        results.sort(key=lambda x: x.changed_at, reverse=True)
+        return results

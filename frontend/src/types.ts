@@ -3,6 +3,7 @@
 export type UserRole = 'CEO' | 'Manager' | 'HR' | 'Employee';
 export type TaskStatus = 'Pending' | 'In Progress' | 'Completed';
 export type AttendanceStatus = 'Present' | 'Absent' | 'Excused';
+export type MeetingStatus = 'Scheduled' | 'Rescheduled' | 'Cancelled' | 'Completed';
 
 export interface User {
   id: number;
@@ -84,6 +85,8 @@ export interface Meeting {
   discussion?: Discussion;
   tasks: Task[];
   next_meeting?: NextMeeting;
+  supporting_documents?: any[];
+  status: MeetingStatus;
 }
 
 export interface MeetingListItem {
@@ -95,6 +98,7 @@ export interface MeetingListItem {
   venue?: string;
   created_at: string;
   task_count: number;
+  status: MeetingStatus;
 }
 
 export interface Notification {

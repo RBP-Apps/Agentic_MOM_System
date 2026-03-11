@@ -69,9 +69,12 @@ export default function ScheduleMeetingPage() {
           email: a.email && a.email.trim() !== '' ? a.email : null,
         }))
       };
-      const { data } = await api.post('/meetings/', payload);
-      toast.success('Meeting scheduled successfully! Invitations sent.');
-      navigate(`/meetings/${data.id}`);
+      const isBR = form.meeting_type?.toLowerCase().includes('board resolution') || form.meeting_type?.toLowerCase() === 'br';
+      const endpoint = isBR ? '/br/' : '/meetings/';
+
+      const { data } = await api.post(endpoint, payload);
+      toast.success(`${isBR ? 'Board Resolution' : 'Meeting'} scheduled successfully! Invitations sent.`);
+      navigate(`${isBR ? '/br' : '/meetings'}/${data.id}`);
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       if (typeof detail === 'string') {
@@ -109,7 +112,12 @@ export default function ScheduleMeetingPage() {
             </div>
             <div>
               <label className={labelClass}>Meeting Type</label>
-              <input value={form.meeting_type} onChange={(e) => updateField('meeting_type', e.target.value)} placeholder="e.g., Board Meeting" className={inputClass} />
+              <select value={form.meeting_type} onChange={(e) => updateField('meeting_type', e.target.value)} className={inputClass}>
+                <option value="">Regular Meeting</option>
+                <option value="Board Resolution">Board Resolution</option>
+                <option value="Committee Meeting">Committee Meeting</option>
+                <option value="Annual General Meeting">Annual General Meeting</option>
+              </select>
             </div>
             <div>
               <label className={labelClass}>Meeting Mode</label>

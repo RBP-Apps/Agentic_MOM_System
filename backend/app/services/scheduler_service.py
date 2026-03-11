@@ -1,14 +1,12 @@
-"""Scheduled background jobs for reminders and warnings."""
+"""Scheduled background jobs for reminders – Google Sheets backed."""
 
-import asyncio
 import logging
 from datetime import date, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from app.database.session import async_session_factory
-from app.services.task_service import TaskService
-from app.services.attendance_service import AttendanceService
+from app.services.google_sheets_service import SheetsDB, _to_int
+from app.services.meeting_service import _parse_date, _row_to_task, DotDict
 from app.notifications.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
@@ -19,62 +17,59 @@ scheduler = AsyncIOScheduler()
 async def check_deadline_reminders():
     """Send reminders for tasks due within 2 days."""
     logger.info("Running deadline reminder check")
-    async with async_session_factory() as db:
-        try:
-            from sqlalchemy import select
-            from app.models.models import Task, TaskStatus
-            tomorrow = date.today() + timedelta(days=1)
-            day_after = date.today() + timedelta(days=2)
-            result = await db.execute(
-                select(Task).where(
-                    Task.deadline.between(tomorrow, day_after),
-                    Task.status != TaskStatus.COMPLETED,
-                )
-            )
-            tasks = result.scalars().all()
-            for task in tasks:
-                await NotificationService.notify_deadline_reminder(db, task)
-            await db.commit()
-            logger.info("Deadline reminders sent for %d tasks", len(tasks))
-        except Exception as e:
-            logger.error("Deadline reminder check failed: %s", e)
-            await db.rollback()
+    try:
+        tomorrow = date.today() + timedelta(days=1)
+        day_after = date.today() + timedelta(days=2)
+        all_tasks = SheetsDB.get_all("Tasks")
+        count = 0
+        for t in all_tasks:
+            dl = _parse_date(t.get("deadline"))
+            status = t.get("status", "")
+            if dl and tomorrow <= dl <= day_after and status != "Completed":
+                task_obj = _row_to_task(t)
+                await NotificationService.notify_deadline_reminder(None, task_obj)
+                count += 1
+        logger.info("Deadline reminders sent for %d tasks", count)
+    except Exception as e:
+        logger.error("Deadline reminder check failed: %s", e)
 
 
 async def check_overdue_tasks():
     """Send alerts for overdue tasks."""
     logger.info("Running overdue task check")
-    async with async_session_factory() as db:
-        try:
-            overdue = await TaskService.overdue_tasks(db)
-            for task in overdue:
-                await NotificationService.notify_overdue(db, task)
-            await db.commit()
-            logger.info("Overdue alerts sent for %d tasks", len(overdue))
-        except Exception as e:
-            logger.error("Overdue check failed: %s", e)
-            await db.rollback()
+    try:
+        today = date.today()
+        all_tasks = SheetsDB.get_all("Tasks")
+        count = 0
+        for t in all_tasks:
+            dl = _parse_date(t.get("deadline"))
+            status = t.get("status", "")
+            if dl and dl < today and status != "Completed":
+                task_obj = _row_to_task(t)
+                await NotificationService.notify_overdue(None, task_obj)
+                count += 1
+        logger.info("Overdue alerts sent for %d tasks", count)
+    except Exception as e:
+        logger.error("Overdue check failed: %s", e)
 
 
 async def check_frequent_absentees():
     """Warn about users who have been absent 3+ times."""
     logger.info("Running absentee check")
-    async with async_session_factory() as db:
-        try:
-            absentees = await AttendanceService.get_frequent_absentees(db)
-            for record in absentees:
-                if record.get("email"):
-                    await NotificationService.notify_absence_warning(
-                        db,
-                        email=record["email"],
-                        user_name=record["user_name"],
-                        count=record["absent_count"],
-                    )
-            await db.commit()
-            logger.info("Absence warnings sent for %d users", len(absentees))
-        except Exception as e:
-            logger.error("Absentee check failed: %s", e)
-            await db.rollback()
+    try:
+        from app.services.attendance_service import AttendanceService
+        absentees = await AttendanceService.get_frequent_absentees(None)
+        for record in absentees:
+            if record.get("email"):
+                await NotificationService.notify_absence_warning(
+                    None,
+                    email=record["email"],
+                    user_name=record["user_name"],
+                    count=record["absent_count"],
+                )
+        logger.info("Absence warnings sent for %d users", len(absentees))
+    except Exception as e:
+        logger.error("Absentee check failed: %s", e)
 
 
 def start_scheduler():

@@ -63,6 +63,34 @@ export default function MeetingDetailPage() {
     }
   };
 
+  const handleCancelMeeting = async () => {
+    if (!meeting || !window.confirm(`Cancel "${meeting.title}"?`)) return;
+    try {
+      await api.post(`/meetings/${id}/cancel`);
+      toast.success('Meeting cancelled');
+      queryClient.invalidateQueries({ queryKey: ['meeting', id] });
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
+    } catch {
+      toast.error('Failed to cancel meeting');
+    }
+  };
+
+  const handleRescheduleMeeting = async () => {
+    const newDate = window.prompt("Enter new date (YYYY-MM-DD):", meeting?.date || "");
+    if (!newDate) return;
+    const newTime = window.prompt("Enter new time (HH:MM):", meeting?.time || "");
+    if (!newTime) return;
+
+    try {
+      await api.post(`/meetings/${id}/reschedule`, { date: newDate, time: newTime });
+      toast.success('Meeting rescheduled');
+      queryClient.invalidateQueries({ queryKey: ['meeting', id] });
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
+    } catch {
+      toast.error('Failed to reschedule meeting');
+    }
+  };
+
   const handleStatusChange = async (taskId: number, newStatus: string) => {
     try {
       await api.put(`/tasks/${taskId}`, { status: newStatus });
@@ -90,7 +118,10 @@ export default function MeetingDetailPage() {
     { icon: <ClockIcon className="w-4 h-4" />, label: 'Time', value: meeting.time },
     { icon: <MapPinIcon className="w-4 h-4" />, label: 'Venue/Link', value: meeting.venue },
     { icon: <UserIcon className="w-4 h-4" />, label: 'Hosted By', value: meeting.hosted_by },
+    { icon: <CheckCircleIcon className="w-4 h-4" />, label: 'Status', value: meeting.status },
   ];
+
+  const canAction = meeting.status === 'Scheduled' || meeting.status === 'Rescheduled';
 
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
@@ -101,18 +132,39 @@ export default function MeetingDetailPage() {
           <ArrowLeftIcon className="w-4 h-4" /> Back to Meetings
         </Link>
         <div className="flex flex-wrap gap-2">
+          {canAction && (
+            <>
+              <button
+                onClick={handleRescheduleMeeting}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold rounded-xl bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-500/20 border border-brand-100 dark:border-brand-500/20 transition-all active:scale-[0.98]"
+              >
+                <CalendarDaysIcon className="w-4 h-4" /> Reschedule
+              </button>
+              <button
+                onClick={handleCancelMeeting}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/20 border border-orange-100 dark:border-orange-500/20 transition-all active:scale-[0.98]"
+              >
+                <ClockIcon className="w-4 h-4" /> Cancel
+              </button>
+            </>
+          )}
+
           <button
             onClick={handleDeleteMeeting}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-100 dark:border-red-500/20 transition-all active:scale-[0.98]"
           >
             <TrashIcon className="w-4 h-4" /> Delete
           </button>
-          <Link
-            to={`/meetings/${id}/log-mom`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-100 dark:border-emerald-500/20 transition-all active:scale-[0.98]"
-          >
-            <PencilSquareIcon className="w-4 h-4" /> Record MOM
-          </Link>
+
+          {canAction && (
+            <Link
+              to={`/meetings/${id}/log-mom`}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-100 dark:border-emerald-500/20 transition-all active:scale-[0.98]"
+            >
+              <PencilSquareIcon className="w-4 h-4" /> Record MOM
+            </Link>
+          )}
+
           <button
             onClick={handleDownloadPDF}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700 shadow-md shadow-brand-200 dark:shadow-brand-900/40 transition-all active:scale-[0.98]"

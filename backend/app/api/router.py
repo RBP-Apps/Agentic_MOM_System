@@ -9,6 +9,7 @@ from app.api.attendance import router as attendance_router
 from app.api.notifications import router as notifications_router
 from app.api.dashboard import router as dashboard_router
 from app.api.upload import router as upload_router
+from app.api.br_meetings import router as br_meetings_router
 
 api_router = APIRouter()
 
@@ -19,3 +20,4 @@ api_router.include_router(attendance_router, prefix="/attendance", tags=["Attend
 api_router.include_router(notifications_router, prefix="/notifications", tags=["Notifications"])
 api_router.include_router(dashboard_router, prefix="/dashboard", tags=["Dashboard"])
 api_router.include_router(upload_router, prefix="/upload", tags=["Upload & AI"])
+api_router.include_router(br_meetings_router, prefix="/br", tags=["Board Resolutions"])

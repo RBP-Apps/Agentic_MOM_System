@@ -182,6 +182,19 @@ class NextMeetingResponse(BaseModel):
         from_attributes = True
 
 
+# ── File Schemas ───────────────────────────────────────────────────────
+
+class FileResponse(BaseModel):
+    id: int
+    meeting_id: int
+    file_path: str
+    file_type: str
+    uploaded_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # ── Meeting Schemas ────────────────────────────────────────────────────
 
 class MeetingCreate(BaseModel):
@@ -198,6 +211,7 @@ class MeetingCreate(BaseModel):
     discussion_summary: Optional[str] = None
     tasks: list[TaskCreate] = []
     next_meeting: Optional[NextMeetingCreate] = None
+    status: Optional[str] = "Scheduled"
 
 
 class MeetingMOMUpdate(BaseModel):
@@ -205,6 +219,10 @@ class MeetingMOMUpdate(BaseModel):
     discussion_summary: Optional[str] = None
     tasks: list[TaskCreate] = []
     next_meeting: Optional[NextMeetingCreate] = None
+
+class RescheduleMeeting(BaseModel):
+    date: date
+    time: time
 
 
 
@@ -226,6 +244,8 @@ class MeetingResponse(BaseModel):
     discussion: Optional[DiscussionResponse] = None
     tasks: list[TaskResponse] = []
     next_meeting: Optional[NextMeetingResponse] = None
+    supporting_documents: list[FileResponse] = []
+    status: str = "Scheduled"
 
     class Config:
         from_attributes = True
@@ -240,6 +260,7 @@ class MeetingListResponse(BaseModel):
     venue: Optional[str]
     created_at: datetime
     task_count: int = 0
+    status: str = "Scheduled"
 
     class Config:
         from_attributes = True
@@ -260,17 +281,6 @@ class NotificationResponse(BaseModel):
         from_attributes = True
 
 
-# ── File Schemas ───────────────────────────────────────────────────────
-
-class FileResponse(BaseModel):
-    id: int
-    meeting_id: int
-    file_path: str
-    file_type: str
-    uploaded_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ── Dashboard / Analytics Schemas ──────────────────────────────────────
