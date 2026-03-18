@@ -191,7 +191,7 @@ async def run_ai_pipeline(mid, mtype, path, title, mdate, mtime, folder_id, pare
         logger.info(f"[STAGE 5/6] Syncing intelligence links and marking as Processing...")
         # Update Meeting/BR Status
         status_update = {
-            "status": "Completed",
+            "status": "Processing",
             "pdf_link": formatted_link, # Assuming formatted_link is the main PDF link
             "recording_link": recording_link,
             "ai_summary_link": formatted_link,
