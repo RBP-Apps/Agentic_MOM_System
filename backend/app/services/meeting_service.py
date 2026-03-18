@@ -47,6 +47,24 @@ def _parse_time(s: str | None) -> time | None:
     return None
 
 
+def _parse_iso_datetime(s: str | None) -> datetime:
+    """Robustly parse ISO or Spreadsheet formatted datetimes."""
+    if not s or str(s).strip() == "":
+        return datetime.utcnow()
+    # Try strict ISO first
+    try:
+        return datetime.fromisoformat(str(s).strip().replace(' ', 'T'))
+    except ValueError:
+        pass
+    # Try common spreadsheet formats
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%d-%m-%Y %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            return datetime.strptime(str(s).strip(), fmt)
+        except ValueError:
+            continue
+    return datetime.utcnow()
+
+
 def _row_to_meeting_obj(m: dict, attendees=None, agenda_items=None, discussion=None, tasks=None, next_meeting=None, files=None):
     """Convert sheet row dicts into a DotDict meeting object suitable for API responses."""
     meeting = DotDict({
@@ -61,7 +79,7 @@ def _row_to_meeting_obj(m: dict, attendees=None, agenda_items=None, discussion=N
         "hosted_by": m.get("hosted_by") or None,
         "file_path": m.get("file_path") or None,
         "created_by": _to_int(str(m.get("created_by", ""))) if m.get("created_by") else None,
-        "created_at": datetime.fromisoformat(m["created_at"]) if m.get("created_at") else datetime.utcnow(),
+        "created_at": _parse_iso_datetime(m.get("created_at")),
         "pdf_link": m.get("pdf_link") or None,
         "drive_file_id": m.get("drive_file_id") or None,
         "drive_folder_id": m.get("drive_folder_id") or None,
@@ -123,7 +141,7 @@ def _row_to_task(t: dict):
         "responsible_email": t.get("responsible_email") or None,
         "deadline": _parse_date(t.get("deadline")),
         "status": t.get("status", "Pending"),
-        "created_at": datetime.fromisoformat(t["created_at"]) if t.get("created_at") else datetime.utcnow(),
+        "created_at": _parse_iso_datetime(t.get("created_at")),
     })
 
 

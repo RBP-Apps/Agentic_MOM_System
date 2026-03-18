@@ -4,7 +4,7 @@ from datetime import date, datetime
 import logging
 
 from app.services.google_sheets_service import SheetsDB, _to_int
-from app.services.meeting_service import _parse_date, _row_to_task, DotDict
+from app.services.meeting_service import _parse_date, _row_to_task, DotDict, _parse_iso_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class TaskService:
             "task_id": task_id,
             "previous_status": h.get("previous_status") or None,
             "new_status": h.get("new_status", ""),
-            "changed_at": datetime.fromisoformat(h["changed_at"]) if h.get("changed_at") else datetime.utcnow(),
+            "changed_at": _parse_iso_datetime(h.get("changed_at")),
             "changed_by": h.get("changed_by") or None,
         }) for h in history]
         # Load meeting reference
@@ -169,7 +169,7 @@ class TaskService:
                 "task_id": task_id,
                 "previous_status": h.get("previous_status") or None,
                 "new_status": h.get("new_status", ""),
-                "changed_at": datetime.fromisoformat(h["changed_at"]) if h.get("changed_at") else datetime.utcnow(),
+                "changed_at": _parse_iso_datetime(h.get("changed_at")),
                 "changed_by": h.get("changed_by") or None,
             }))
         results.sort(key=lambda x: x.changed_at, reverse=True)

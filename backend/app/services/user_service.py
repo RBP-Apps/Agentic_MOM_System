@@ -4,7 +4,7 @@ from datetime import datetime
 import logging
 
 from app.services.google_sheets_service import SheetsDB, _to_int
-from app.services.meeting_service import DotDict
+from app.services.meeting_service import DotDict, _parse_iso_datetime
 from app.core.security import hash_password
 
 logger = logging.getLogger(__name__)
@@ -81,5 +81,5 @@ def _row_to_user(u: dict) -> DotDict:
         "role": u.get("role", "Employee"),
         "phone": u.get("phone") or None,
         "is_active": _to_bool(str(u.get("is_active", "True"))),
-        "created_at": datetime.fromisoformat(u["created_at"]) if u.get("created_at") else datetime.utcnow(),
+        "created_at": _parse_iso_datetime(u.get("created_at")),
     })

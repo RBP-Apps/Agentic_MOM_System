@@ -5,7 +5,7 @@ from typing import Optional
 from datetime import datetime
 
 from app.services.google_sheets_service import SheetsDB, _to_int
-from app.services.meeting_service import DotDict
+from app.services.meeting_service import DotDict, _parse_iso_datetime
 from app.notifications.email_service import EmailService
 
 logger = logging.getLogger(__name__)
@@ -140,7 +140,7 @@ class NotificationService:
             "message": n.get("message", ""),
             "notification_type": n.get("notification_type", "email"),
             "is_read": str(n.get("is_read", "")).strip().lower() in ("true", "1", "yes"),
-            "sent_at": datetime.fromisoformat(n["sent_at"]) if n.get("sent_at") else datetime.utcnow(),
+            "sent_at": _parse_iso_datetime(n.get("sent_at")),
         }) for n in sliced]
 
     @staticmethod
