@@ -22,43 +22,80 @@ class AIService:
 
     @classmethod
     async def transcribe_audio(cls, audio_path: str) -> str:
-        """Transcribe audio using AssemblyAI Cloud STT with full transcript logging."""
+        """Transcribe audio using AssemblyAI Cloud STT via direct REST API Call with full transcript logging."""
         logger.info(f"🎤 [DEBUG] STARTING TRANSCRIPTION: {audio_path}")
         try:
             if not os.path.exists(audio_path):
                 raise FileNotFoundError(f"Audio file not found at: {audio_path}")
 
-            transcriber = aai.Transcriber()
-            config = aai.TranscriptionConfig(
-                speaker_labels=True,
-                punctuate=True,
-                format_text=True,
-                speech_models=["universal-3-pro", "universal-2"],
-                language_detection=True # Enable auto-detection for Hindi/Hinglish support
-            )
-            
-            logger.info("📡 [DEBUG] Uploading and transcribing to AssemblyAI Cloud...")
-            transcript = await asyncio.to_thread(transcriber.transcribe, audio_path, config)
-            
-            if transcript.status == aai.TranscriptStatus.error:
-                error_msg = str(transcript.error)
-                if "no spoken audio" in error_msg.lower():
-                    logger.warning("⚠️ [DEBUG] No speech detected in the audio file.")
-                    return "No speech detected in this recording."
-                raise Exception(f"AssemblyAI Error: {error_msg}")
+            import requests
 
-            logger.info(f"✅ [DEBUG] Transcription SUCCESS! Word count: {len(transcript.text.split())}")
+            base_url = "https://api.assemblyai.com"
+            headers = {"authorization": settings.ASSEMBLY_AI_API_KEY}
+
+            # 1. Upload Local File
+            logger.info("📡 [DEBUG] Uploading file to AssemblyAI...")
+            def _upload():
+                with open(audio_path, "rb") as f:
+                    response = requests.post(f"{base_url}/v2/upload", headers=headers, data=f)
+                    response.raise_for_status()
+                    return response.json()["upload_url"]
+            audio_url = await asyncio.to_thread(_upload)
+
+            # 2. Trigger Transcription
+            logger.info("📡 [DEBUG] Starting transcription task with language detection & advanced models...")
+            data = {
+                "audio_url": audio_url,
+                "language_detection": True,
+                "speech_models": ["universal-3-pro", "universal-2"],
+                "speaker_labels": True,
+                "punctuate": True,
+                "format_text": True
+            }
+            def _start_transcription():
+                response = requests.post(f"{base_url}/v2/transcript", json=data, headers=headers)
+                response.raise_for_status()
+                return response.json()['id']
+            transcript_id = await asyncio.to_thread(_start_transcription)
+
+            # 3. Poll for Completion
+            polling_endpoint = f"{base_url}/v2/transcript/{transcript_id}"
+            logger.info("⏳ [DEBUG] Polling for completion...")
             
-            # Formating transcript with speaker labels
+            while True:
+                def _poll():
+                    response = requests.get(polling_endpoint, headers=headers)
+                    response.raise_for_status()
+                    return response.json()
+                result = await asyncio.to_thread(_poll)
+                
+                status = result['status']
+                if status == 'completed':
+                    break
+                elif status == 'error':
+                    error_msg = result.get('error', 'Unknown Error')
+                    if "no spoken audio" in error_msg.lower():
+                        logger.warning("⚠️ [DEBUG] No speech detected in the audio file.")
+                        return "No speech detected in this recording."
+                    raise Exception(f"AssemblyAI Error: {error_msg}")
+                
+                logger.info(f"⏳ [DEBUG] AssemblyAI Status: {status}...")
+                await asyncio.sleep(3)
+
+            # 4. Process Result
             formatted_text = ""
-            if transcript.utterances:
-                for utterance in transcript.utterances:
-                    line = f"Speaker {utterance.speaker}: {utterance.text}"
+            utterances = result.get('utterances', [])
+            
+            if utterances:
+                logger.info(f"✅ [DEBUG] Transcription SUCCESS! Word count: {len(result.get('text', '').split())}")
+                for utterance in utterances:
+                    line = f"Speaker {utterance.get('speaker', 'A')}: {utterance.get('text', '')}"
                     formatted_text += line + "\n"
                     # Log every line so the user can see it in terminal
                     logger.info(f"📝 [TRANSCRIPT LINE] {line}")
             else:
-                formatted_text = transcript.text
+                formatted_text = result.get('text', '')
+                logger.info(f"✅ [DEBUG] Transcription SUCCESS! Word count: {len(formatted_text.split())}")
                 logger.info(f"📝 [FULL TRANSCRIPT] {formatted_text}")
 
             return formatted_text

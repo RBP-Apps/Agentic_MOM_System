@@ -52,6 +52,7 @@ async def get_processing_status(meeting_id: int, meeting_type: str = "Regular"):
         "total": stage_info["total"],
         "label": stage_info["label"],
         "status": m.get("status", "Scheduled"),
+        "error": m.get("processing_error", ""),
     }
 
 @router.post("/process")
@@ -223,8 +224,13 @@ async def run_ai_pipeline(mid, mtype, path, title, mdate, mtime, folder_id, pare
         logger.info(f"✨ AI PIPELINE FULLY COMPLETED FOR '{title}' (ID: {mid})")
         
     except Exception as e:
-        _update_stage(mid, mtype, "failed")
+        error_msg = str(e)[:500]  # Truncate for sheet cell limit
         logger.error(f"!!! CRITICAL: AI Pipeline failed for meeting {mid}: {e}", exc_info=True)
+        sheet = "BR_Meetings" if mtype == "BR" else "Meetings"
+        SheetsDB.update_row(sheet, mid, {
+            "processing_stage": "failed",
+            "processing_error": error_msg,
+        })
     finally:
         if os.path.exists(path):
             os.remove(path)
