@@ -243,45 +243,46 @@ export default function MeetingDetailPage() {
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           {canAction && (
-            <>
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleRescheduleMeeting}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold rounded-xl bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-500/20 border border-brand-100 dark:border-brand-500/20 transition-all active:scale-[0.98]"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 md:px-3.5 md:py-2 text-[12px] md:text-[13px] font-semibold rounded-xl bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-500/20 border border-brand-100 dark:border-brand-500/20 transition-all active:scale-[0.98]"
               >
                 <CalendarDaysIcon className="w-4 h-4" /> Reschedule
               </button>
               <button
                 onClick={handleCancelMeeting}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/20 border border-orange-100 dark:border-orange-500/20 transition-all active:scale-[0.98]"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 md:px-3.5 md:py-2 text-[12px] md:text-[13px] font-semibold rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/20 border border-orange-100 dark:border-orange-500/20 transition-all active:scale-[0.98]"
               >
                 <ClockIcon className="w-4 h-4" /> Cancel
               </button>
-            </>
+            </div>
           )}
-
-          <button
-            onClick={handleDeleteMeeting}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-100 dark:border-red-500/20 transition-all active:scale-[0.98]"
-          >
-            <TrashIcon className="w-4 h-4" /> Delete
-          </button>
-
-          {canAction && (
-            <Link
-              to={`/meetings/${id}/log-mom`}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-semibold rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-100 dark:border-emerald-500/20 transition-all active:scale-[0.98]"
+          
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleDeleteMeeting}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 md:px-3.5 md:py-2 text-[12px] md:text-[13px] font-semibold rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-100 dark:border-red-500/20 transition-all active:scale-[0.98]"
             >
-              <PencilSquareIcon className="w-4 h-4" /> Record MOM
-            </Link>
-          )}
+              <TrashIcon className="w-4 h-4" /> Delete
+            </button>
 
+            {canAction && (
+              <Link
+                to={`/meetings/${id}/log-mom`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 md:px-3.5 md:py-2 text-[12px] md:text-[13px] font-semibold rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-100 dark:border-emerald-500/20 transition-all active:scale-[0.98]"
+              >
+                <PencilSquareIcon className="w-4 h-4" /> Record
+              </Link>
+            )}
 
-          <button
-            onClick={handleDownloadPDF}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700 shadow-md shadow-brand-200 dark:shadow-brand-900/40 transition-all active:scale-[0.98]"
-          >
-            <ArrowDownTrayIcon className="w-4 h-4" /> Download MOM PDF
-          </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 md:px-3.5 md:py-2 text-[12px] md:text-[13px] font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700 shadow-md shadow-brand-200 dark:shadow-brand-900/40 transition-all active:scale-[0.98]"
+            >
+              <ArrowDownTrayIcon className="w-4 h-4" /> PDF
+            </button>
+          </div>
         </div>
       </div>
 
@@ -314,10 +315,10 @@ export default function MeetingDetailPage() {
             </span>
             <p className="text-[11px] font-bold uppercase tracking-widest text-brand-200">Details</p>
           </div>
-          <h2 className="text-2xl font-extrabold mb-4">{meeting.title}</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <h2 className="text-xl md:text-2xl font-extrabold mb-4">{meeting.title}</h2>
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {metaItems.filter(i => i.value).map((item, idx) => (
-              <div key={idx} className="bg-white/10 rounded-xl px-3.5 py-3 backdrop-blur-sm">
+              <div key={idx} className="bg-white/10 rounded-xl px-3 py-2.5 md:px-3.5 md:py-3 backdrop-blur-sm">
                 <div className="flex items-center gap-1.5 text-brand-200 mb-1">
                   {item.icon}
                   <p className="text-[10px] font-bold uppercase tracking-wide">{item.label}</p>

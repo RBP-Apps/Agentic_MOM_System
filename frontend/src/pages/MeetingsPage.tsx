@@ -273,9 +273,9 @@ export default function MeetingsPage() {
                 </div>
 
                 {/* Right – Badges + Actions */}
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 shrink-0 ml-auto">
                   {/* Task badge */}
-                  <div className="hidden sm:flex flex-col items-end gap-2">
+                  <div className="hidden lg:flex flex-col items-end gap-2">
                     <div className="flex items-center gap-1.5">
                       <div className="flex flex-col items-center px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 min-w-[70px]">
                         <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-tighter">Pending</span>
@@ -300,7 +300,7 @@ export default function MeetingsPage() {
                   <div className="flex items-center gap-2">
                     <Link
                       to={`/meetings/${m.id}`}
-                      className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-800 dark:hover:text-brand-300 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-50 dark:bg-brand-500/10 text-[12px] font-bold text-brand-600 dark:text-brand-400 hover:bg-brand-100 transition-colors"
                     >
                       View <ArrowRightIcon className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                     </Link>

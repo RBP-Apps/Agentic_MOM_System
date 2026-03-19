@@ -57,11 +57,15 @@ def _parse_iso_datetime(s: str | None) -> datetime:
     except ValueError:
         pass
     # Try common spreadsheet formats
-    for fmt in ("%Y-%m-%d %H:%M:%S", "%d-%m-%Y %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M"):
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%d-%m-%Y %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M", "%d-%m-%Y %H:%M"):
         try:
             return datetime.strptime(str(s).strip(), fmt)
         except ValueError:
+            # Handle single digit hours by strptime usually, but if it fails, try a manual check or different formats
             continue
+    
+    # Fallback for formats like "2026-03-19 6:09:57" if strptime "%H" is strict (some systems are)
+    # But usually %H handles 1-digit. If we're here, all failed.
     return datetime.utcnow()
 
 
@@ -168,8 +172,14 @@ def _load_meeting_relations(meeting_id: int):
     next_meeting = _row_to_next_meeting(nm_rows[0]) if nm_rows else None
 
     files_rows = SheetsDB.get_by_field("Files", "meeting_id", meeting_id)
-    files = [DotDict(f) for f in files_rows]
-
+    files = []
+    for f in files_rows:
+        fd = DotDict(f)
+        fd.id = _to_int(str(fd.get("id", ""))) or 0
+        fd.meeting_id = _to_int(str(fd.get("meeting_id", ""))) or 0
+        fd.uploaded_at = _parse_iso_datetime(fd.get("uploaded_at"))
+        files.append(fd)
+    
     return attendees, agenda_items, discussion, tasks, next_meeting, files
 
 

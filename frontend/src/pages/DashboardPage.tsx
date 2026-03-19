@@ -40,7 +40,7 @@ export default function DashboardPage() {
     <div className="space-y-6 max-w-[1400px] mx-auto">
 
       {/* ── Hero Row ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-5">
 
         {/* Next Meeting – wider */}
         <div className="lg:col-span-3 relative rounded-2xl overflow-hidden shadow-xl shadow-brand-100 dark:shadow-brand-900/30">
@@ -132,7 +132,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── BR Meeting Row ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-5">
           {/* Next BR */}
           <div className="lg:col-span-3 relative rounded-2xl overflow-hidden shadow-xl shadow-indigo-100 dark:shadow-indigo-900/30">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-brand-600 to-indigo-800" />
@@ -207,7 +207,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Stats Grid ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4">
         <StatCard title="Total Meetings" value={stats.total_meetings} color="blue" icon={<CalendarDaysIcon className="w-5 h-5" />} />
         <StatCard title="Total Tasks" value={stats.total_tasks} color="indigo" icon={<ClipboardDocumentListIcon className="w-5 h-5" />} link="/tasks" />
         <StatCard title="Pending" value={stats.pending_tasks} color="yellow" icon={<ClockIcon className="w-5 h-5" />} />
@@ -218,7 +218,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Charts ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
         <div className="bg-white dark:bg-[#161b27] rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm">
           <p className="text-[13px] font-bold text-slate-800 dark:text-white mb-4">Meeting Trends</p>
           <ResponsiveContainer width="100%" height={240}>
@@ -253,7 +253,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Bottom Tables ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
 
         {/* Recent Meetings */}
         <div className="bg-white dark:bg-[#161b27] rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm">
