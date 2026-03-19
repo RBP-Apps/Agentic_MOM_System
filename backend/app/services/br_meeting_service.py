@@ -6,7 +6,7 @@ import logging
 
 from app.services.google_sheets_service import SheetsDB, _to_int, upload_to_drive, delete_from_drive
 from app.schemas.schemas import MeetingCreate, ExtractedMOM, MeetingMOMUpdate
-from app.services.meeting_service import DotDict, _parse_date, _parse_time, _row_to_meeting_obj, _row_to_attendee, _row_to_agenda, _row_to_discussion, _row_to_task, _row_to_next_meeting
+from app.services.meeting_service import DotDict, _parse_date, _parse_time, _row_to_meeting_obj, _row_to_attendee, _row_to_agenda, _row_to_discussion, _row_to_task, _row_to_next_meeting, _parse_iso_datetime
 
 from app.config import get_settings
 
@@ -27,7 +27,13 @@ def _load_br_relations(meeting_id: int):
     next_meeting = _row_to_next_meeting(nm_rows[0]) if nm_rows else None
 
     files_rows = SheetsDB.get_by_field("BR_Files", "meeting_id", meeting_id)
-    files = [DotDict(f) for f in files_rows]
+    files = []
+    for f in files_rows:
+        fd = DotDict(f)
+        fd.id = _to_int(str(f.get("id", ""))) or 0
+        fd.meeting_id = _to_int(str(f.get("meeting_id", ""))) or 0
+        fd.uploaded_at = _parse_iso_datetime(f.get("uploaded_at"))
+        files.append(fd)
 
     return attendees, agenda_items, discussion, tasks, next_meeting, files
 

@@ -175,9 +175,9 @@ def _load_meeting_relations(meeting_id: int):
     files = []
     for f in files_rows:
         fd = DotDict(f)
-        fd.id = _to_int(str(fd.get("id", ""))) or 0
-        fd.meeting_id = _to_int(str(fd.get("meeting_id", ""))) or 0
-        fd.uploaded_at = _parse_iso_datetime(fd.get("uploaded_at"))
+        fd.id = _to_int(str(f.get("id", ""))) or 0
+        fd.meeting_id = _to_int(str(f.get("meeting_id", ""))) or 0
+        fd.uploaded_at = _parse_iso_datetime(f.get("uploaded_at"))
         files.append(fd)
     
     return attendees, agenda_items, discussion, tasks, next_meeting, files
