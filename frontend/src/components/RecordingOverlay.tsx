@@ -82,25 +82,40 @@ const RecordingOverlay: React.FC<Props> = ({ meetingId, meetingType, meetingMode
             let displayStream: MediaStream | null = null;
             
             if (isOnline) {
-                // Online meeting -> Capture SYSTEM SOUND via Screen Share
-                displayStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true, // Browser requires video to be true to capture screen
-                    audio: true
-                });
-                
-                const audioTracks = displayStream.getAudioTracks();
-                if (audioTracks.length === 0) {
-                    displayStream.getTracks().forEach(t => t.stop());
-                    toast.error("Please make sure to check 'Share tab audio' or 'Share system audio' in the browser popup!");
-                    return;
-                }
-                
-                stream = new MediaStream([audioTracks[0]]);
-                
-                // Auto-stop if user clicks "Stop Sharing" on Chrome's floating bar
-                const videoTrack = displayStream.getVideoTracks()[0];
-                if (videoTrack) {
-                    videoTrack.onended = () => stopRecording();
+                // Online meeting -> Try SYSTEM SOUND via Screen Share first
+                try {
+                    if (!navigator.mediaDevices.getDisplayMedia) {
+                        throw new Error("DisplayMedia not supported");
+                    }
+                    
+                    displayStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true, // Browser requires video to be true to capture screen
+                        audio: true
+                    });
+                    
+                    const audioTracks = displayStream.getAudioTracks();
+                    if (audioTracks.length === 0) {
+                        displayStream.getTracks().forEach(t => t.stop());
+                        toast.error("Please make sure to check 'Share tab audio' or 'Share system audio' in the browser popup!");
+                        return;
+                    }
+                    
+                    stream = new MediaStream([audioTracks[0]]);
+                    
+                    // Auto-stop if user clicks "Stop Sharing" on Chrome's floating bar
+                    const videoTrack = displayStream.getVideoTracks()[0];
+                    if (videoTrack) {
+                        videoTrack.onended = () => stopRecording();
+                    }
+                } catch (e) {
+                    // Mobile & Tablet Fallback
+                    console.warn("Screen share failed/cancelled, falling back to Microphone:", e);
+                    toast("Using Mobile/Mic Fallback. Please put your meeting on Speakerphone!", { icon: '📱', duration: 4000 });
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: { 
+                            deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
+                        } 
+                    });
                 }
             } else {
                 // Offline meeting -> Capture MICROPHONE
