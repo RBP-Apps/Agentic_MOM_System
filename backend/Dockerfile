@@ -3,7 +3,8 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Install system dependencies if required
-RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y gcc libsndfile1 libpulse0 && rm -rf /var/lib/apt/lists/*
+
 
 # Copy requirements and install
 COPY requirements.txt .
