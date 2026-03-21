@@ -297,7 +297,7 @@ export default function MeetingDetailPage() {
       )}
 
       {/* ── Processing Progress Banner ── */}
-      {(meeting.status === 'Processing' || meeting.status === 'Scheduled') && (
+      {((meeting.status === 'Processing' && !meeting.ai_summary_link) || meeting.status === 'Scheduled') && (
         <ProcessingBanner
           meetingId={meeting.id}
           meetingType="Regular"
