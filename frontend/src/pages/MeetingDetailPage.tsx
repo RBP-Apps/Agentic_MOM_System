@@ -488,7 +488,14 @@ export default function MeetingDetailPage() {
           />
         ) : (
           meeting.discussion ? (
-            <p className="text-[13px] text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{meeting.discussion.summary_text}</p>
+            <div 
+              className="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed space-y-2"
+              dangerouslySetInnerHTML={{ 
+                __html: (meeting.discussion.summary_text || "")
+                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                  .replace(/\n/g, '<br/>')
+              }} 
+            />
           ) : (
             <p className="text-sm text-slate-400 italic">No discussion summary recorded. Click "Edit" to add one.</p>
           )

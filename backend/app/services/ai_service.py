@@ -189,14 +189,15 @@ class AIService:
         # 4. Dashboard Stage (Balanced Narrative Summary for UI Autofill)
         logger.info("📊 [DEBUG] Extracting balanced dashboard summary points...")
         dashboard_prompt = ChatPromptTemplate.from_template(
-            "Generate a HIGH-IMPACT, CONCISE PROFESSIONAL SUMMARY for a web dashboard/detail page. "
-            "Use a clear structure with UPPERCASE HEADERS (CONTEXT:, MAIN DISCUSSION:, DECISIONS:, TASKS EXTRACTED FROM MEETING:). "
+            "Generate a HIGH-IMPACT, POINT-WISE PROFESSIONAL SUMMARY for a web dashboard. "
+            "Use BOLD UPPERCASE HEADERS (e.g., **CONTEXT:**, **KEY POINTS:**, **DECISIONS:, **TASKS EXTRACTED:). "
             "Note: The discussion may have been in Hindi/Hinglish; provide the output in professional English. "
             "\n\nCRITICAL INSTRUCTIONS: "
-            "1. STRICTLY EXTRACT: Only list tasks and decisions that were EXPLICITLY discussed. DO NOT suggest, invent, or hallucinate new tasks based on inference. "
-            "2. LENGTH: Keep it short but high-quality (target: 100-200 words total). "
-            "3. NO SYMBOLS: Do NOT use markdown bolding (**), italics (*), checkboxes ( [ ] ), or emojis. Use only plain text and simple dashes (-) for bullets. "
-            "4. FORMATTING: Use DOUBLE LINE BREAKS between sections to keep it clean in a text area."
+            "1. NO PARAGRAPHS: Strictly avoid writing any paragraphs. Every piece of information must be a bullet point (-). "
+            "2. BOLD HEADERS: Use double asterisks for headers like **CONTEXT:**. "
+            "3. STRICT EXTRACTION: Only list tasks and decisions that were EXPLICITLY discussed. DO NOT suggest/invent tasks. "
+            "4. LENGTH: Keep it very concise (target: 100-200 words total). "
+            "5. NO EMOJIS: Use only plain text and simple dashes (-) for bullets."
             "\n\nSummaries:\n{summaries}"
         )
         dashboard_chain = dashboard_prompt | llm | StrOutputParser()
