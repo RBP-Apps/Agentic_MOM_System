@@ -189,14 +189,14 @@ class AIService:
         # 4. Dashboard Stage (Balanced Narrative Summary for UI Autofill)
         logger.info("📊 [DEBUG] Extracting balanced dashboard summary points...")
         dashboard_prompt = ChatPromptTemplate.from_template(
-            "Generate a BALANCED PROFESSIONAL DISCUSSION SUMMARY for a web dashboard/detail page. "
-            "Use a clear narrative style with topic-wise headers (Context:, New Office Setup:, Action Items:, etc.). "
-            "Include an explicit 'AI SUGGESTED TASKS' section at the end for the admin. "
+            "Generate a HIGH-IMPACT, CONCISE PROFESSIONAL SUMMARY for a web dashboard/detail page. "
+            "Use a clear structure with UPPERCASE HEADERS (CONTEXT:, MAIN DISCUSSION:, DECISIONS:, TASKS EXTRACTED FROM MEETING:). "
+            "Note: The discussion may have been in Hindi/Hinglish; provide the output in professional English. "
             "\n\nCRITICAL INSTRUCTIONS: "
-            "1. Return as PLAIN TEXT but use simple structure (headers + dashes for bullets). "
-            "2. Aim for a BALANCED LENGTH (approx. 200-350 words total). "
-            "3. Professional English: Even if discussions were in Hindi/Hinglish, provide the output in professional English. "
-            "4. NO EMOJIS OR SYMBOLS: Strictly avoid using any icons, checkmarks, or markdown formatting symbols like bolding (**), italics (*), or hashtags (#)."
+            "1. STRICTLY EXTRACT: Only list tasks and decisions that were EXPLICITLY discussed. DO NOT suggest, invent, or hallucinate new tasks based on inference. "
+            "2. LENGTH: Keep it short but high-quality (target: 100-200 words total). "
+            "3. NO SYMBOLS: Do NOT use markdown bolding (**), italics (*), checkboxes ( [ ] ), or emojis. Use only plain text and simple dashes (-) for bullets. "
+            "4. FORMATTING: Use DOUBLE LINE BREAKS between sections to keep it clean in a text area."
             "\n\nSummaries:\n{summaries}"
         )
         dashboard_chain = dashboard_prompt | llm | StrOutputParser()

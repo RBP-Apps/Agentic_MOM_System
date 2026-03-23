@@ -217,7 +217,7 @@ async def run_ai_pipeline(mid, mtype, path, title, mdate, mtime, folder_id, pare
         _update_stage(mid, mtype, "completed") # Discussion Summary
         logger.info(f"[STAGE 6/6] Syncing intelligence assets...")
         
-        # Dashboard Autofill: Use the optimized brief summary (Topic-wise + Tasks)
+        # Dashboard Autofill: Use the optimized brief summary (UPPERCASE Headers + Precise Tasks)
         discussion_update = {"summary_text": ai_results['brief_summary']}
         if mtype == "BR":
             existing = SheetsDB.get_by_field("BR_Discussions", "meeting_id", mid)
