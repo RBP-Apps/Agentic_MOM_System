@@ -140,14 +140,16 @@ class AIService:
         logger.info(f"📊 [DEBUG] Chunking transcript into {len(chunks)} segments.")
         
         map_prompt = ChatPromptTemplate.from_template(
-            "Extract significant discussion points, technical details, material numbers, and decisions from this meeting segment. "
+            "Extract significant discussion points, technical details, material numbers, decisions, **Action Items (Tasks)**, and **Recommended Next Steps** from this meeting segment. "
             "Use the provided Official Agenda as your strategic context. "
             "\n\nOFFICIAL AGENDA:\n{agenda}\n\n"
             "CRITICAL INSTRUCTIONS:\n"
             "1. Focus on context and clarity while capturing essential information linked to the agenda.\n"
             "2. Distinguish between 'Material Strategic Figures' (e.g., Budgets, Assets, Final Investment Amounts) and 'Conversational Noise' (e.g., minor calculation errors, trial numbers, or process-level arguments).\n"
-            "3. If a calculation error (like 400g vs 500g) is discussed, only note that 'calculations were reconciled' if relevant. Do NOT list the specific intermediate numbers of the error.\n"
-            "4. Note: The transcript may contain Hindi, English, or Hinglish. Provide output in professional English.\n"
+            "3. ACTION ITEMS: Explicitly extract any task discussed, whether assigned or unassigned. Label unassigned tasks as 'General Action Items'.\n"
+            "4. RECOMMENDATIONS: Capture any suggestions or proposed strategic steps mentioned.\n"
+            "5. If a calculation error (like 400g vs 500g) is discussed, only note that 'calculations were reconciled' if relevant. Do NOT list the specific intermediate numbers of the error.\n"
+            "6. Note: The transcript may contain Hindi, English, or Hinglish. Provide output in professional English.\n"
             "\n\nSegment:\n{text}"
         )
         map_chain = map_prompt | llm | StrOutputParser()
@@ -164,7 +166,7 @@ class AIService:
         
         reduce_prompt = ChatPromptTemplate.from_template(
             "Synthesize these segment summaries into a professional, formal MOM report in English. "
-            "Ensure the report includes an Executive Summary, Decisions, and Action Items. "
+            "Ensure the report includes an Executive Summary, Decisions, **Strict Action items**, and **Recommended Tasks**. "
             "Refer to the Official Agenda for structure: \n{agenda}\n\n"
             "Note: Original discussion might be Hindi/Hinglish. English synthesis must be clear and professional.\n\nSummaries:\n{summaries}"
         )
