@@ -317,9 +317,9 @@ export default function MeetingDetailPage() {
             <p className="text-[11px] font-bold uppercase tracking-widest text-brand-200">Details</p>
           </div>
           <h2 className="text-xl md:text-2xl font-extrabold mb-4">{meeting.title}</h2>
-          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="flex flex-wrap gap-3">
             {metaItems.filter(i => i.value).map((item, idx) => (
-              <div key={idx} className="bg-white/10 rounded-xl px-3 py-2.5 md:px-3.5 md:py-3 backdrop-blur-sm">
+              <div key={idx} className="flex-1 min-w-[200px] bg-white/10 rounded-xl px-3 py-2.5 md:px-3.5 md:py-3 backdrop-blur-sm">
                 <div className="flex items-center gap-1.5 text-brand-200 mb-1">
                   {item.icon}
                   <p className="text-[10px] font-bold uppercase tracking-wide">{item.label}</p>
