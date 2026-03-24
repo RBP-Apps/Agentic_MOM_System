@@ -126,13 +126,14 @@ async def process_meeting_recording(
         str(meeting.date),
         str(meeting.time),
         dfid,
-        parent_root
+        parent_root,
+        meeting.agenda_items or []
     )
     
     logger.info(f"AI Pipeline triggered in background for meeting {meeting_id}")
     return {"status": "Processing started", "detail": "Audio uploaded and AI pipeline triggered."}
 
-async def run_ai_pipeline(mid, mtype, path, title, mdate, mtime, folder_id, parent_root):
+async def run_ai_pipeline(mid, mtype, path, title, mdate, mtime, folder_id, parent_root, agenda_items=None):
     try:
         logger.info(f">>> STARTING AI PIPELINE for '{title}' (Meeting ID: {mid})")
         
@@ -142,10 +143,17 @@ async def run_ai_pipeline(mid, mtype, path, title, mdate, mtime, folder_id, pare
         transcript_text = await AIService.transcribe_audio(path)
         logger.info(f"[STAGE 1/6] Transcription complete. Length: {len(transcript_text.split())} words.")
         
-        # 2. Local Summarization (FLAN-T5) with Chunk Logs
+        # Format agenda for AI
+        agenda_text = ""
+        if agenda_items:
+            agenda_text = "\n".join([f"- {a.topic}: {a.description or ''}" for a in agenda_items])
+        else:
+            agenda_text = "No specific agenda provided."
+
+        # 2. Local Summarization (Hierarchical) with Agenda Context
         _update_stage(mid, mtype, "summarizing")
-        logger.info(f"[STAGE 2/6] Starting local hierarchical summarization...")
-        ai_results = await AIService.summarize_transcript(transcript_text)
+        logger.info(f"[STAGE 2/6] Starting hierarchical summarization with Agenda context...")
+        ai_results = await AIService.summarize_transcript(transcript_text, agenda=agenda_text)
         logger.info(f"[STAGE 2/6] Summarization complete.")
         
         # 3. Prepare 3 separate PDF files for Drive (MOM report is handled manually by Admin)

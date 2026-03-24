@@ -111,7 +111,7 @@ class AIService:
         return [" ".join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
 
     @classmethod
-    async def summarize_transcript(cls, transcript: str) -> dict:
+    async def summarize_transcript(cls, transcript: str, agenda: str = "No specific agenda provided.") -> dict:
         """
         Hierarchical Summarization using LangChain with step-by-step logs.
         """
@@ -140,10 +140,14 @@ class AIService:
         logger.info(f"📊 [DEBUG] Chunking transcript into {len(chunks)} segments.")
         
         map_prompt = ChatPromptTemplate.from_template(
-            "Extract significant discussion points, technical details, numbers, and decisions from this meeting segment. "
-            "Focus on context and clarity while capturing essential information. "
-            "Note: The transcript may contain Hindi, English, or Hinglish (mixed Hindi-English). "
-            "Understand the context carefully and provide the output in professional English. "
+            "Extract significant discussion points, technical details, material numbers, and decisions from this meeting segment. "
+            "Use the provided Official Agenda as your strategic context. "
+            "\n\nOFFICIAL AGENDA:\n{agenda}\n\n"
+            "CRITICAL INSTRUCTIONS:\n"
+            "1. Focus on context and clarity while capturing essential information linked to the agenda.\n"
+            "2. Distinguish between 'Material Strategic Figures' (e.g., Budgets, Assets, Final Investment Amounts) and 'Conversational Noise' (e.g., minor calculation errors, trial numbers, or process-level arguments).\n"
+            "3. If a calculation error (like 400g vs 500g) is discussed, only note that 'calculations were reconciled' if relevant. Do NOT list the specific intermediate numbers of the error.\n"
+            "4. Note: The transcript may contain Hindi, English, or Hinglish. Provide output in professional English.\n"
             "\n\nSegment:\n{text}"
         )
         map_chain = map_prompt | llm | StrOutputParser()
@@ -151,7 +155,7 @@ class AIService:
         chunk_summaries = []
         for i, chunk in enumerate(chunks):
             logger.info(f"🕒 [DEBUG] Summarizing Chunk {i+1}/{len(chunks)} (Input: {len(chunk.split())} words)...")
-            summary = await map_chain.ainvoke({"text": chunk})
+            summary = await map_chain.ainvoke({"text": chunk, "agenda": agenda})
             chunk_summaries.append(summary)
             logger.info(f"✨ [CHUNK SUMMARY {i+1}] {summary[:200]}...")
 
@@ -159,49 +163,48 @@ class AIService:
         logger.info("🔥 [DEBUG] Merging all segments into professional MOM...")
         
         reduce_prompt = ChatPromptTemplate.from_template(
-            "Synthesize these meeting segment summaries into a professional, formal Minutes of Meeting (MOM) report in English. "
+            "Synthesize these segment summaries into a professional, formal MOM report in English. "
             "Ensure the report includes an Executive Summary, Decisions, and Action Items. "
-            "Note: The original discussion might have been in Hindi/Hinglish, so ensure the English synthesis is clear and professional.\n\nSummaries:\n{summaries}"
+            "Refer to the Official Agenda for structure: \n{agenda}\n\n"
+            "Note: Original discussion might be Hindi/Hinglish. English synthesis must be clear and professional.\n\nSummaries:\n{summaries}"
         )
         reduce_chain = reduce_prompt | llm | StrOutputParser()
         
         combined_summaries_text = "\n\n".join(chunk_summaries)
-        final_summary = await reduce_chain.ainvoke({"summaries": combined_summaries_text})
+        final_summary = await reduce_chain.ainvoke({"summaries": combined_summaries_text, "agenda": agenda})
 
         # 3. Beautify Stage (Formatted Narrative Summary)
         logger.info("✨ [DEBUG] Generating well-formatted Final Summary report...")
         beautify_prompt = ChatPromptTemplate.from_template(
-            "Create a COMPREHENSIVE STRATEGIC INTELLIGENCE BRIEFING report in English based on these meeting summaries. "
-            "The discussion may have been in Hindi/Hinglish; focus on a rich, flowing narrative in professional English. "
-            "\n\nCRITICAL INSTRUCTIONS: "
-            "1. Aim for a balanced length (approx. 300-400 words total for the summary). "
-            "2. Use Markdown headings (##) for each main topic. "
-            "3. Use **Bold Text** for key decisions and milestones. "
-            "4. Include a 'RECOMMENDATIONS & TASKS' section at the end. "
-            "5. NO EMOJIS OR SYMBOLS: Strictly avoid using icons, checkboxes, or emojis; use simple dashes (-) for bullets. "
-            "6. DO NOT use generic placeholders like [Your Name] or [Company Name]. "
-            "7. Start directly with the overview or highlights."
+            "Create a COMPREHENSIVE STRATEGIC INTELLIGENCE BRIEFING report in English. "
+            "Use the provided Official Agenda to organize the report: \n{agenda}\n\n"
+            "CRITICAL INSTRUCTIONS: "
+            "1. Focus on a rich, flowing narrative in professional English. "
+            "2. STRATEGIC MAGNITUDE: Preserve high-value metrics (e.g., 2 Crore Investment) but discard minor conversational noise (e.g., 400g calculation errors). Focus on the CONCLUSION, not the dialogue process. "
+            "3. AIM FOR OUTCOMES: If a topic was on the agenda but not clarified, mention it as 'Postponed' or 'Requires Follow-up'. "
+            "4. Layout: Approx. 300-400 words. Use Markdown headings (##) for main topics. "
+            "5. NO EMOJIS: Use simple dashes (-) for bullets. "
+            "6. DO NOT use generic placeholders like [Your Name]. "
             "\n\nSummaries:\n{summaries}"
         )
         beautify_chain = beautify_prompt | llm | StrOutputParser()
-        formatted_summary = await beautify_chain.ainvoke({"summaries": combined_summaries_text})
+        formatted_summary = await beautify_chain.ainvoke({"summaries": combined_summaries_text, "agenda": agenda})
 
         # 4. Dashboard Stage (Balanced Narrative Summary for UI Autofill)
         logger.info("📊 [DEBUG] Extracting balanced dashboard summary points...")
         dashboard_prompt = ChatPromptTemplate.from_template(
             "Generate a HIGH-IMPACT, POINT-WISE PROFESSIONAL SUMMARY for a web dashboard. "
-            "Use BOLD UPPERCASE HEADERS (e.g., **CONTEXT:**, **KEY POINTS:**, **DECISIONS:, **TASKS EXTRACTED:). "
-            "Note: The discussion may have been in Hindi/Hinglish; provide the output in professional English. "
-            "\n\nCRITICAL INSTRUCTIONS: "
-            "1. NO PARAGRAPHS: Strictly avoid writing any paragraphs. Every piece of information must be a bullet point (-). "
-            "2. BOLD HEADERS: Use double asterisks for headers like **CONTEXT:**. "
-            "3. STRICT EXTRACTION: Only list tasks and decisions that were EXPLICITLY discussed. DO NOT suggest/invent tasks. "
-            "4. LENGTH: Keep it very concise (target: 100-200 words total). "
-            "5. NO EMOJIS: Use only plain text and simple dashes (-) for bullets."
+            "Reference Official Agenda: {agenda}\n\n"
+            "CRITICAL INSTRUCTIONS: "
+            "1. NO PARAGRAPHS: Strictly avoid writing any paragraphs. Use only bullet points (-). "
+            "2. HEADERS: Use BOLD UPPERCASE HEADERS (e.g., **CONTEXT:**, **DECISIONS:, **TASKS EXTRACTED:). "
+            "3. STRATEGIC EXTRACTION: Prioritize tasks and decisions that match the agenda. Only list items that were EXPLICITLY discussed. "
+            "4. MATERIALITY: Discard noise from process/dialogue. Only record final agreed-upon outcomes and high-value figures. "
+            "5. NO HALLUCINATION: If a task wasn't confirmed, don't invent it. "
             "\n\nSummaries:\n{summaries}"
         )
         dashboard_chain = dashboard_prompt | llm | StrOutputParser()
-        brief_summary = await dashboard_chain.ainvoke({"summaries": combined_summaries_text})
+        brief_summary = await dashboard_chain.ainvoke({"summaries": combined_summaries_text, "agenda": agenda})
 
         logger.info("🏁 [DEBUG] AI Pipeline Finished Successfully.")
         return {
